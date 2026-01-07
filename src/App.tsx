@@ -282,7 +282,7 @@ const App: React.FC = () => {
               </div>
               <h1 className="text-5xl md:text-7xl font-bold leading-tight mb-6">
                 Molding the Future with{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#fda4af] to-white">
+                <span className="text-transparent bg-clip-text bg-linear-to-r from-[#fda4af] to-white">
                   First Polymers
                 </span>
                 .
@@ -329,7 +329,7 @@ const App: React.FC = () => {
               viewport={{ once: true }}
               className="w-full md:w-1/2 relative"
             >
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl border-4 border-white aspect-[4/3]">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl border-4 border-white aspect-4/3">
                 <img
                   src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=1000"
                   alt="Laboratory"
@@ -442,7 +442,7 @@ const App: React.FC = () => {
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     alt={product.title}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+                  <div className="absolute inset-0 bg-linear-to-t from-black/80 to-transparent"></div>
                   <h3 className="absolute bottom-4 left-6 text-white text-2xl font-bold">
                     {product.title}
                   </h3>
@@ -511,7 +511,7 @@ const App: React.FC = () => {
               viewport={{ once: true }}
               className="lg:w-1/2 relative"
             >
-              <div className="rounded-2xl overflow-hidden shadow-2xl relative bg-slate-200 min-h-[300px]">
+              <div className="rounded-2xl overflow-hidden shadow-2xl relative bg-slate-200 min-h-75">
                 {/* Image of Containers */}
                 <img
                   src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&q=80&w=1000"
@@ -521,7 +521,7 @@ const App: React.FC = () => {
                 <div className="absolute inset-0 bg-[#e11d48]/20 mix-blend-multiply"></div>
 
                 {/* Overlay Text */}
-                <div className="absolute bottom-0 left-0 w-full p-8 bg-gradient-to-t from-black/80 to-transparent text-white">
+                <div className="absolute bottom-0 left-0 w-full p-8 bg-linear-to-t from-black/80 to-transparent text-white">
                   <p className="font-bold text-xl">Port of Export</p>
                   <p className="text-slate-200 text-sm">
                     Real-time tracking available for all bulk orders.

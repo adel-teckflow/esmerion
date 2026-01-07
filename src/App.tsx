@@ -14,6 +14,9 @@ import {
   ChevronDown,
   Globe2,
   Container,
+  PhoneCallIcon,
+  MailIcon,
+  MapPin,
 } from "lucide-react";
 
 /* ---------------------------------- */
@@ -164,7 +167,7 @@ const App: React.FC = () => {
           <a href="#" className="flex items-center gap-2 group z-50">
             <img src="/esmerion-logo.png" alt="logo" className="w-96 h-12" />
             <span
-              className={`text-2xl font-bold tracking-tight transition-colors ${
+              className={`text-2xl font-bold tracking-tight transition-colors hidden lg:block ${
                 isScrolled ? "text-[#e11d48]" : "text-white"
               }`}
             >
@@ -296,7 +299,7 @@ const App: React.FC = () => {
                   href="#products"
                   className="px-8 py-4 bg-[#f43f5e] hover:bg-[#fb7185] text-white rounded-lg font-bold transition shadow-lg shadow-[#881337]/50 flex items-center justify-center gap-2 group"
                 >
-                  Explore Granules{" "}
+                  Explore Granules
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </a>
                 <a
@@ -307,6 +310,26 @@ const App: React.FC = () => {
                 </a>
               </div>
             </motion.div>
+          </div>
+          <div className="  px-10 py-6 items-center justify-center hidden lg:flex lg:w-1/2 flex-col">
+            <img
+              src="/conteneur.png"
+              alt="conteneur"
+              className="size-96 object-contain"
+            />
+            <div className="text-sm text-white   flex flex-col gap-3 flex-wrap max-w-sm  ">
+              <p className="inline-flex gap-1">
+                <PhoneCallIcon className="text-xs" /> +213 x xx xx xx xx
+              </p>
+              <p className="inline-flex gap-1">
+                {" "}
+                <MailIcon /> email@first-polymers.com
+              </p>
+              <p className="inline-flex gap-1">
+                {" "}
+                <MapPin /> Hydra, algiers,Algeria
+              </p>
+            </div>
           </div>
         </div>
 

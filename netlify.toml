@@ -1,0 +1,22 @@
+[build]
+  # La commande pour construire ton site
+  command = "npm run build"
+  # Le dossier que Netlify doit servir (Vite génère un dossier 'dist')
+  publish = "dist"
+
+[build.environment]
+  # Force Node.js à utiliser une version récente
+  NODE_VERSION = "20"
+
+[[redirects]]
+  # Crucial pour React Router : redirige toutes les URLs vers index.html
+  # Évite les erreurs 404 quand on rafraîchit une page interne
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  # Optimisation du cache pour les assets (images, js, css)
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -9,5 +9,12 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <form name="contact-esmerion" netlify netlify-honeypot="bot-field" hidden>
+      <input type="text" name="first_name" />
+      <input type="text" name="last_name" />
+      <input type="email" name="email" />
+      <select name="polymer_interest"></select>
+      <textarea name="message"></textarea>
+    </form>
   </body>
 </html>

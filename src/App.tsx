@@ -141,6 +141,46 @@ const ScrollLine: React.FC = () => {
 const App: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState<boolean>(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    try {
+      const response = await fetch("/", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        // @ts-ignore
+        body: new URLSearchParams(formData).toString(),
+      });
+
+      if (response.ok) {
+        setStatus("success");
+      } else {
+        setStatus("error");
+      }
+    } catch (error) {
+      setStatus("error");
+    }
+  };
+
+  if (status === "success") {
+    return (
+      <div className="text-center p-10 bg-green-50 rounded-xl border border-green-200">
+        <h3 className="text-2xl font-bold text-green-800">Thank you!</h3>
+        <p className="text-green-600">
+          Your message has been sent successfully. We will contact you soon.
+        </p>
+        <button
+          onClick={() => setStatus("idle")}
+          className="mt-4 text-[#e11d48] font-bold"
+        >
+          Send another message
+        </button>
+      </div>
+    );
+  }
 
   useEffect(() => {
     const handleScroll = (): void => {
@@ -700,6 +740,7 @@ const App: React.FC = () => {
               name="contact-esmerion" // Nom du formulaire (apparaîtra sur Netlify)
               method="POST"
               data-netlify="true" // Dit à Netlify d'intercepter l'envoi
+              onSubmit={handleSubmit}
             >
               {/* Champ caché indispensable pour React/Vite */}
               <input type="hidden" name="form-name" value="contact-esmerion" />

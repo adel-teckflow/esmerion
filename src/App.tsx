@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { motion, useScroll, useSpring } from "framer-motion";
+import React, { useEffect, useState, useRef } from "react";
+import { motion, useScroll, useSpring, AnimatePresence } from "framer-motion";
 import {
   Hexagon,
   Menu,
@@ -17,6 +17,8 @@ import {
   PhoneCallIcon,
   MailIcon,
   MapPin,
+  Download,
+  FileText,
 } from "lucide-react";
 import ContactForm from "./forms/ContactForm";
 
@@ -96,41 +98,163 @@ const NavLink: React.FC<NavLinkProps> = ({
 );
 
 /* ---------------------------------- */
-/* Scroll Line */
+/* NOUVEAU: Composant Modal Générique */
 /* ---------------------------------- */
 
-const ScrollLine: React.FC = () => {
-  const { scrollYProgress } = useScroll();
-  const scaleY = useSpring(scrollYProgress, {
-    stiffness: 100,
+type ModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+};
+
+const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-60 flex items-center justify-center p-4"
+          >
+            {/* Modal Content */}
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden relative"
+            >
+              {/* Header */}
+              <div className="bg-[#881337] p-6 flex justify-between items-center text-white">
+                <h3 className="text-xl font-bold flex items-center gap-2">
+                  <Hexagon className="w-5 h-5 fill-current text-[#f43f5e]" />
+                  {title}
+                </h3>
+                <button
+                  onClick={onClose}
+                  className="p-1 hover:bg-white/20 rounded-full transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-6 max-h-[70vh] overflow-y-auto">{children}</div>
+
+              {/* Footer (Optional decorative bar) */}
+              <div className="h-2 bg-linear-to-r from-[#e11d48] to-[#fda4af]" />
+            </motion.div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+};
+
+/* ---------------------------------- */
+/* NOUVEAU: Système de Tracé SVG par Section */
+/* ---------------------------------- */
+
+interface SectionTraceProps {
+  type: "straight" | "zigzag" | "wave" | "dashed" | "plume" | "end";
+  color: string;
+  className?: string;
+}
+
+const SectionTrace: React.FC<SectionTraceProps> = ({
+  type,
+  color,
+  className = "",
+}) => {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start center", "end center"],
+  });
+
+  const pathLength = useSpring(scrollYProgress, {
+    stiffness: 150,
     damping: 30,
     restDelta: 0.001,
   });
 
-  return (
-    <div className="fixed left-0 top-0 w-full h-full pointer-events-none z-0 hidden md:block opacity-20">
-      <svg className="w-full h-full" preserveAspectRatio="none">
-        <motion.path
-          d="M 50% 0 L 50% 100%"
-          stroke="#e11d48"
-          strokeWidth={4}
-          style={{ pathLength: scaleY }}
-          className="drop-shadow-[0_0_8px_rgba(225,29,72,0.6)]"
-        />
-      </svg>
+  // Définition des formes de tracés (ViewBox 0 0 100 100 étiré)
+  let d = "";
+  let strokeWidth = 3;
+  let strokeDasharray = "none";
+  let opacity = 0.4;
 
-      <div
-        className="absolute w-4 h-4 bg-[#e11d48] rounded-full blur-[2px]"
-        style={{ top: "20%", left: "50%", transform: "translateX(-50%)" }}
-      />
-      <div
-        className="absolute w-4 h-4 bg-[#e11d48] rounded-full blur-[2px]"
-        style={{ top: "50%", left: "50%", transform: "translateX(-50%)" }}
-      />
-      <div
-        className="absolute w-4 h-4 bg-[#e11d48] rounded-full blur-[2px]"
-        style={{ top: "80%", left: "50%", transform: "translateX(-50%)" }}
-      />
+  switch (type) {
+    case "straight":
+      d = "M 50 0 L 50 100";
+      break;
+    case "zigzag": // Scientifique / Précis
+      d =
+        "M 50 0 L 50 5 L 45 15 L 55 25 L 45 35 L 55 45 L 45 55 L 55 65 L 45 75 L 55 85 L 50 95 L 50 100";
+      strokeWidth = 3;
+      break;
+    case "wave": // Fluide / Polymère
+      d = "M 50 0 Q 60 25 50 50 Q 40 75 50 100";
+      strokeWidth = 4;
+      break;
+    case "dashed": // Logistique / Route
+      d = "M 50 0 L 50 100";
+      strokeDasharray = "5 10"; // Pointillés
+      strokeWidth = 3;
+      opacity = 0.6;
+      break;
+    case "plume": // Process / Calligraphie
+      // On simule un trait de plume avec une courbe légère mais épaisse
+      d = "M 50 0 C 48 30, 52 70, 50 100";
+      strokeWidth = 8; // Trait très épais
+      opacity = 0.3;
+      break;
+    case "end":
+      d = "M 50 0 L 50 80";
+      break;
+  }
+
+  return (
+    <div
+      ref={ref}
+      className={`absolute inset-0 w-full h-full pointer-events-none z-0 hidden md:block ${className}`}
+      aria-hidden="true"
+    >
+      <svg
+        width="100%"
+        height="100%"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        className="overflow-visible"
+      >
+        <motion.path
+          d={d}
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeDasharray={strokeDasharray}
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke" // Garde l'épaisseur du trait constante même si le SVG est étiré
+          style={{ pathLength, opacity }}
+        />
+        {/* Petit point décoratif au début du tracé pour connecter les sections */}
+        {type !== "end" && (
+          <motion.circle
+            cx="50"
+            cy="0"
+            r="1.5"
+            fill={color}
+            style={{ opacity }}
+            vectorEffect="non-scaling-stroke"
+          />
+        )}
+      </svg>
     </div>
   );
 };
@@ -143,6 +267,9 @@ const App: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState<boolean>(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
+  // NOUVEAU: État pour gérer les modales
+  const [activeModal, setActiveModal] = useState<string | null>(null);
+
   useEffect(() => {
     const handleScroll = (): void => {
       setIsScrolled(window.scrollY > 50);
@@ -152,9 +279,203 @@ const App: React.FC = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Données de simulation pour les spécifications techniques
+  const productSpecs: Record<
+    string,
+    { title: string; data: Record<string, string> }
+  > = {
+    "specs-hdpe": {
+      title: "HDPE Specifications",
+      data: {
+        Density: "0.95 g/cm³",
+        "Melt Flow Index": "0.3 g/10min",
+        "Tensile Strength": "28 MPa",
+        "Flexural Modulus": "1100 MPa",
+        "Melting Point": "130°C",
+      },
+    },
+    "specs-pp": {
+      title: "Polypropylene Specifications",
+      data: {
+        Density: "0.90 g/cm³",
+        "Melt Flow Index": "12 g/10min",
+        "Tensile Strength": "32 MPa",
+        "Flexural Modulus": "1500 MPa",
+        "Melting Point": "165°C",
+      },
+    },
+    "specs-pet": {
+      title: "PET Resin Specifications",
+      data: {
+        Density: "1.38 g/cm³",
+        "Intrinsic Viscosity": "0.80 dl/g",
+        Acetaldehyde: "< 1.0 ppm",
+        Crystallinity: "> 40%",
+        "Melting Point": "250°C",
+      },
+    },
+  };
+
+  const renderModalContent = () => {
+    if (!activeModal) return null;
+
+    // 1. Modale "Our Story"
+    if (activeModal === "our-story") {
+      return (
+        <div className="space-y-4 text-slate-600">
+          <p>
+            Established in 2005 in Algiers, <strong>Esmerion</strong> began with
+            a simple mission: to provide the local industry with high-quality,
+            consistent raw materials.
+          </p>
+          <p>
+            What started as a small trading unit has evolved into a
+            state-of-the-art compounding facility. We now serve over 500 clients
+            across North Africa and Europe, specializing in bespoke polymer
+            blends that meet rigorous ISO standards.
+          </p>
+          <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mt-4">
+            <h4 className="font-bold text-[#881337] mb-2 flex items-center gap-2">
+              <Award className="w-4 h-4" /> key Milestones
+            </h4>
+            <ul className="list-disc list-inside space-y-1 text-sm">
+              <li>2005: Company Founded</li>
+              <li>2010: First Extrusion Line Installed</li>
+              <li>2018: ISO 9001 Certification</li>
+              <li>2023: Expanded to International Exports</li>
+            </ul>
+          </div>
+        </div>
+      );
+    }
+
+    // 2. Modale "Explore Granules"
+    if (activeModal === "explore-granules") {
+      return (
+        <div className="space-y-4">
+          <p className="text-slate-600 mb-4">
+            We offer a wide range of virgin and recycled polymer granules suited
+            for injection molding, extrusion, and blow molding.
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            {[
+              "LDPE",
+              "LLDPE",
+              "HDPE",
+              "PP Homo",
+              "PP Copo",
+              "PS",
+              "ABS",
+              "PET",
+            ].map((item) => (
+              <div
+                key={item}
+                className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200"
+              >
+                <div className="w-2 h-2 rounded-full bg-[#e11d48]"></div>
+                <span className="font-semibold text-slate-700">{item}</span>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={() => {
+              setActiveModal(null);
+              window.location.href = "#contact";
+            }}
+            className="w-full mt-4 py-3 bg-[#e11d48] text-white font-bold rounded-lg hover:bg-[#be123c] transition"
+          >
+            Request Full Catalog
+          </button>
+        </div>
+      );
+    }
+
+    // 3. Modale "Logistics Map"
+    if (activeModal === "logistics-map") {
+      return (
+        <div className="text-center space-y-6">
+          <div className="bg-slate-100 rounded-lg h-48 flex items-center justify-center border-2 border-dashed border-slate-300">
+            <div className="flex flex-col items-center text-slate-400">
+              <Globe2 className="w-12 h-12 mb-2 opacity-50" />
+              <span>Global Route Map Preview</span>
+            </div>
+          </div>
+          <p className="text-slate-600 text-sm">
+            Our logistics network covers major ports in the Mediterranean,
+            Northern Europe, and East Asia.
+          </p>
+          <button className="w-full py-3 bg-slate-900 text-white font-bold rounded-lg hover:bg-slate-800 transition flex items-center justify-center gap-2">
+            <Download className="w-4 h-4" /> Download PDF Map (2.4MB)
+          </button>
+        </div>
+      );
+    }
+
+    // 4. Modales "Specs" (Dynamique)
+    if (productSpecs[activeModal]) {
+      const spec = productSpecs[activeModal];
+      return (
+        <div>
+          <p className="text-slate-500 mb-4 text-sm">
+            Technical Data Sheet (TDS) summary. For full certification
+            documents, please contact our sales team.
+          </p>
+          <div className="border border-slate-200 rounded-lg overflow-hidden">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                <tr>
+                  <th className="px-4 py-3">Property</th>
+                  <th className="px-4 py-3">Typical Value</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {Object.entries(spec.data).map(([key, value]) => (
+                  <tr key={key} className="hover:bg-slate-50">
+                    <td className="px-4 py-3 font-medium text-slate-600">
+                      {key}
+                    </td>
+                    <td className="px-4 py-3 text-[#e11d48] font-mono">
+                      {value}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-6 flex gap-3">
+            <button className="flex-1 py-2 border border-slate-300 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 transition flex items-center justify-center gap-2">
+              <FileText className="w-4 h-4" /> Save PDF
+            </button>
+            <button className="flex-1 py-2 bg-[#e11d48] text-white font-semibold rounded-lg hover:bg-[#be123c] transition">
+              Order Sample
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return <p>Content not found.</p>;
+  };
+
+  const getModalTitle = () => {
+    if (activeModal === "our-story") return "Our Journey";
+    if (activeModal === "explore-granules") return "Product Categories";
+    if (activeModal === "logistics-map") return "Logistics Network";
+    if (productSpecs[activeModal || ""])
+      return productSpecs[activeModal || ""].title;
+    return "Details";
+  };
+
   return (
     <div className="font-sans text-slate-800 bg-slate-50 selection:bg-[#e11d48] selection:text-white overflow-x-hidden">
-      <ScrollLine />
+      {/* --- NOUVEAU: RENDU DE LA MODALE --- */}
+      <Modal
+        isOpen={!!activeModal}
+        onClose={() => setActiveModal(null)}
+        title={getModalTitle()}
+      >
+        {renderModalContent()}
+      </Modal>
 
       {/* Navigation */}
       <nav
@@ -166,14 +487,19 @@ const App: React.FC = () => {
       >
         <div className="container mx-auto px-6 flex justify-between items-center">
           <a href="#" className="flex items-center gap-2 group z-50">
-            <img src="/esmerion-logo.png" alt="logo" className="w-96 h-12" />
-            <span
-              className={`text-2xl font-bold tracking-tight transition-colors hidden lg:block ${
-                isScrolled ? "text-[#e11d48]" : "text-white"
-              }`}
-            >
-              POLYMERS
-            </span>
+            {isScrolled ? (
+              <img
+                src="/esmerion-logo.png"
+                alt="logo"
+                className="object-contain max-h-12"
+              />
+            ) : (
+              <img
+                src="esmerion-white.png"
+                className="object-contain max-h-12"
+                alt="esmerion-logo"
+              />
+            )}
           </a>
 
           {/* Desktop Nav */}
@@ -262,13 +588,15 @@ const App: React.FC = () => {
         )}
       </nav>
 
-      {/* Hero Section */}
+      {/* ----------------- SECTION 1: HERO ----------------- */}
       <header className="relative w-full h-screen overflow-hidden bg-[#881337] text-white z-10">
+        {/* Trace SVG: Ligne Droite Claire */}
+        <SectionTrace type="straight" color="#fecdd3" />
+
         {/* Background Elements */}
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-[#f43f5e] rounded-full blur-[120px] opacity-30 animate-pulse"></div>
           <div className="absolute bottom-[-10%] left-[-10%] w-[40vw] h-[40vw] bg-[#be123c] rounded-full blur-[100px] opacity-40"></div>
-          {/* Subtle Grid Pattern */}
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
         </div>
 
@@ -287,7 +615,7 @@ const App: React.FC = () => {
               <h1 className="text-5xl md:text-7xl font-bold leading-tight mb-6">
                 Molding the Future with{" "}
                 <span className="text-transparent bg-clip-text bg-linear-to-r from-[#fda4af] to-white">
-                  First Polymers
+                  Esmerion
                 </span>
                 .
               </h1>
@@ -296,39 +624,40 @@ const App: React.FC = () => {
                 polymer solutions powering the next generation of industry.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <a
-                  href="#products"
+                <button
+                  onClick={() => setActiveModal("explore-granules")}
                   className="px-8 py-4 bg-[#f43f5e] hover:bg-[#fb7185] text-white rounded-lg font-bold transition shadow-lg shadow-[#881337]/50 flex items-center justify-center gap-2 group"
                 >
                   Explore Granules
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </a>
-                <a
-                  href="#about"
+                </button>
+                <button
+                  onClick={() => setActiveModal("our-story")}
                   className="px-8 py-4 border border-white/30 hover:bg-white/10 text-white rounded-lg font-bold transition flex items-center justify-center"
                 >
                   Our Story
-                </a>
+                </button>
               </div>
             </motion.div>
           </div>
-          <div className="  px-10 py-6 items-center justify-center hidden lg:flex lg:w-1/2 flex-col">
+          <div className="px-10 py-6 items-center justify-center hidden lg:flex lg:w-1/2 flex-col">
             <img
-              src="/conteneur.png"
-              alt="conteneur"
-              className="size-96 object-contain"
+              src="https://images.unsplash.com/photo-1595246140625-573b715d11dc?auto=format&fit=crop&q=80&w=800"
+              alt="Industrial Plant"
+              className="size-96 object-contain rounded-full border-4 border-[#fb7185]/30 p-2"
             />
-            <div className="text-sm text-white flex flex-col gap-3 flex-wrap max-w-sm  ">
-              <p className="inline-flex gap-1">
-                <PhoneCallIcon className="text-xs" /> +213 x xx xx xx xx
+            <div className="text-sm text-white flex flex-col gap-3 flex-wrap max-w-sm mt-8 p-4 bg-white/10 rounded-xl backdrop-blur-md">
+              <p className="inline-flex gap-2 items-center">
+                <PhoneCallIcon className="w-4 h-4 text-[#fecdd3]" /> +213 21 00
+                00 00
               </p>
-              <p className="inline-flex gap-1">
-                {" "}
-                <MailIcon /> email@first-polymers.com
+              <p className="inline-flex gap-2 items-center">
+                <MailIcon className="w-4 h-4 text-[#fecdd3]" />{" "}
+                email@first-polymers.com
               </p>
-              <p className="inline-flex gap-1">
-                {" "}
-                <MapPin /> Hydra, algiers,Algeria
+              <p className="inline-flex gap-2 items-center">
+                <MapPin className="w-4 h-4 text-[#fecdd3]" /> Hydra, Algiers,
+                Algeria
               </p>
             </div>
           </div>
@@ -343,9 +672,12 @@ const App: React.FC = () => {
         </motion.div>
       </header>
 
-      {/* About Section */}
-      <section id="about" className="py-24 relative z-10">
-        <div className="container mx-auto px-6">
+      {/* ----------------- SECTION 2: ABOUT ----------------- */}
+      <section id="about" className="py-24 relative z-10 bg-white">
+        {/* Trace SVG: ZigZag Rouge (Scientific Look) */}
+        <SectionTrace type="zigzag" color="#e11d48" />
+
+        <div className="container mx-auto px-6 relative z-10">
           <div className="flex flex-col md:flex-row items-center gap-16">
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -353,7 +685,7 @@ const App: React.FC = () => {
               viewport={{ once: true }}
               className="w-full md:w-1/2 relative"
             >
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl border-4 border-white aspect-4/3">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl border-4 border-slate-100 aspect-video">
                 <img
                   src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=1000"
                   alt="Laboratory"
@@ -395,7 +727,7 @@ const App: React.FC = () => {
                 <span className="text-[#e11d48]">Durability</span> & Performance
               </h2>
               <p className="text-slate-600 text-lg mb-6 leading-relaxed">
-                At First Polymers, we bridge the gap between raw science and
+                At Esmerion, we bridge the gap between raw science and
                 industrial application. Since our inception, we have been
                 dedicated to producing high-grade polymer granules that serve
                 the automotive, medical, and consumer goods sectors.
@@ -423,9 +755,12 @@ const App: React.FC = () => {
         </div>
       </section>
 
-      {/* Products Section */}
+      {/* ----------------- SECTION 3: PRODUCTS ----------------- */}
       <section id="products" className="py-24 bg-slate-100 relative z-10">
-        <div className="container mx-auto px-6">
+        {/* Trace SVG: Vague Rouge Foncé (Flow) */}
+        <SectionTrace type="wave" color="#9f1239" />
+
+        <div className="container mx-auto px-6 relative z-10">
           <SectionTitle
             subtitle="Our Materials"
             title="Versatile Polymer Solutions"
@@ -434,17 +769,20 @@ const App: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
+                id: "specs-hdpe",
                 title: "HDPE Granules",
                 desc: "High-Density Polyethylene renowned for its high strength-to-density ratio. Ideal for piping and containers.",
                 img: "/Hdpe-granules.jpeg",
               },
               {
+                id: "specs-pp",
                 title: "Polypropylene (PP)",
                 desc: "Rugged and resistant to chemical solvents. The go-to choice for automotive parts and textiles.",
                 img: "/Polypropylene.jpeg",
                 highlight: true,
               },
               {
+                id: "specs-pet",
                 title: "PET Resins",
                 desc: "Crystal clear and lightweight. Perfect for beverage packaging and fiber production.",
                 img: "/Pet-resins.jpeg",
@@ -475,12 +813,12 @@ const App: React.FC = () => {
                   <p className="text-slate-600 mb-6 leading-relaxed">
                     {product.desc}
                   </p>
-                  <a
-                    href="#"
+                  <button
+                    onClick={() => setActiveModal(product.id)}
                     className="inline-flex items-center text-[#e11d48] font-bold tracking-wide hover:text-[#9f1239] transition-colors"
                   >
                     VIEW SPECS <ArrowRight className="w-4 h-4 ml-2" />
-                  </a>
+                  </button>
                 </div>
               </motion.div>
             ))}
@@ -488,11 +826,14 @@ const App: React.FC = () => {
         </div>
       </section>
 
-      {/* NEW: Logistics / Containers Section */}
+      {/* ----------------- SECTION 4: LOGISTICS ----------------- */}
       <section
         id="logistics"
         className="py-24 bg-white relative z-10 overflow-hidden"
       >
+        {/* Trace SVG: Pointillés (Route) */}
+        <SectionTrace type="dashed" color="#e11d48" />
+
         <div className="absolute right-0 top-0 w-1/3 h-full bg-slate-50 transform skew-x-12 translate-x-20 z-0 hidden lg:block"></div>
         <div className="container mx-auto px-6 relative z-10">
           <div className="flex flex-col lg:flex-row items-center gap-16">
@@ -524,7 +865,10 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              <button className="bg-slate-900 text-white px-8 py-3 rounded-lg font-bold hover:bg-[#e11d48] transition-colors flex items-center gap-2">
+              <button
+                onClick={() => setActiveModal("logistics-map")}
+                className="bg-slate-900 text-white px-8 py-3 rounded-lg font-bold hover:bg-[#e11d48] transition-colors flex items-center gap-2"
+              >
                 Download Logistics Map <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -557,17 +901,18 @@ const App: React.FC = () => {
         </div>
       </section>
 
-      {/* Process / Features Grid */}
+      {/* ----------------- SECTION 5: PROCESS / FEATURES ----------------- */}
       <section className="py-24 bg-[#881337] text-white relative z-10 overflow-hidden">
+        {/* Trace SVG: Stylo Plume Blanc (Thick Calligraphy) */}
+        <SectionTrace type="plume" color="#ffffff" className="opacity-30" />
+
         {/* Decorative Circles */}
-        <div className="absolute top-0 left-0 w-64 h-64 bg-[#f43f5e] rounded-full mix-blend-overlay filter blur-3xl opacity-20 -translate-x-1/2 -translate-y-1/2"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#be123c] rounded-full mix-blend-overlay filter blur-3xl opacity-20 translate-x-1/3 translate-y-1/3"></div>
+        <div className="absolute top-0 left-0 w-64 h-64 bg-[#f43f5e] rounded-full mix-blend-overlay filter blur-3xl opacity-20 -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#be123c] rounded-full mix-blend-overlay filter blur-3xl opacity-20 translate-x-1/3 translate-y-1/3 pointer-events-none"></div>
 
         <div className="container mx-auto px-6 relative z-20">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">
-              The First Polymers Standard
-            </h2>
+            <h2 className="text-4xl font-bold mb-4">The Esmerion Standard</h2>
             <p className="text-[#fecdd3] max-w-2xl mx-auto">
               We don't just sell plastic; we provide material certainty. Our
               rigorous testing and compounding process ensures every pellet
@@ -614,9 +959,12 @@ const App: React.FC = () => {
         </div>
       </section>
 
-      {/* Contact Section */}
+      {/* ----------------- SECTION 6: CONTACT ----------------- */}
       <section id="contact" className="py-24 relative z-10 bg-slate-50">
-        <div className="container mx-auto px-6 max-w-4xl">
+        {/* Trace SVG: Ligne finale vers point */}
+        <SectionTrace type="end" color="#e11d48" />
+
+        <div className="container mx-auto px-6 max-w-4xl relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -642,12 +990,11 @@ const App: React.FC = () => {
         <div className="container mx-auto px-6">
           <div className="flex flex-col md:flex-row justify-between items-center mb-8">
             <div className="flex items-center gap-2 mb-4 md:mb-0">
-              <div className="bg-[#e11d48] text-white p-1.5 rounded">
-                <Hexagon className="w-5 h-5 fill-current" />
-              </div>
-              <span className="text-xl font-bold text-white tracking-tight">
-                FIRST POLYMERS
-              </span>
+              <img
+                src="/esmerion-white.png"
+                alt="esmerion-logo"
+                className="h-16 object-contain"
+              />
             </div>
             <div className="flex space-x-6">
               <a href="#" className="hover:text-[#e11d48] transition">
@@ -662,7 +1009,7 @@ const App: React.FC = () => {
             </div>
           </div>
           <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between text-sm">
-            <p>&copy; 2024 First Polymers Co. All rights reserved.</p>
+            <p>&copy; 2024 Esmerion Co. All rights reserved.</p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <a href="#" className="hover:text-white transition">
                 Privacy Policy
